@@ -242,75 +242,56 @@ export const generateContent = async (
   // Handle GPT-Image-1.5-all specific logic
   if (settings.modelName === 'gpt-image-1.5-all') {
     const isImageEdit = images.length > 0;
-    // Use user-specified domain if available, otherwise default to settings or existing logic
-    // We'll stick to the settings.customEndpoint if provided, but respect the path structure requested.
-    // If the user provided specific full URLs, we could use them, but typically we compose with baseUrl.
-    // Given the strong instruction "For ... use https://api.apizoo.top/...", 
-    // we'll try to use that domain if the user hasn't overridden it with a custom endpoint,
-    // OR we just append the path to the current baseUrl.
-    // Let's assume baseUrl is correct (from settings or default) and just switch path.
 
-    // HOWEVER, the user explicitly said "Should use https://api.apizoo.top...".
-    // I will treat this as the intent to use this host for this model.
-    // But forcing it might ignore the user's proxy settings if they have one.
-    // I'll stick to constructing from baseUrl for now, but ensure the path is correct. 
-    // If the user *really* wants to force apizoo.top, they should set it in settings or we'd hardcode.
-    // I'll assume standard composition.
-
+    // Construct endpoints based on user instruction (retaining separate paths)
+    // but using the user-verified JSON structure for both if applicable.
+    // The user sample shows 'image_gen' task type for both valid outputs.
+    // We will stick to the requested paths.
     const endpointPath = isImageEdit ? '/v1/images/edits' : '/v1/images/generations';
     const endpoint = `${baseUrl}${endpointPath}`;
 
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${apiKey}`
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
     };
 
-    let body: any;
-
-    if (isImageEdit) {
-      // For image edits, we often need multipart/form-data for OpenAI compatibility, 
-      // OR JSON if the provider supports it.
-      // Since previous implementation was JSON, I'll try JSON first with base64 image.
-      // OpenAI 'edits' endpoint typically expects 'image' and 'prompt' in multipart/form-data.
-      // But some proxies accept JSON with base64.
-      // Let's try FormData approach as it's more standard for 'edits' endpoints, 
-      // BUT 'fetch' in Node/Browser might differ. 
-      // If we are in browser (SettingsPanel.tsx implies React), FormData works.
-
-      // WAIT: The previous code worked with JSON for text-to-image.
-      // I'll try to use JSON with "image" field as base64 string because constructing FormData 
-      // with base64 dataUrl sometimes requires Blob conversion which is verbose.
-      // Let's assume the API handles JSON with "image" or "images" base64.
-
-      body = JSON.stringify({
-        model: 'gpt-image-1.5-all',
-        prompt: prompt,
-        n: 1,
-        size: "1024x1024",
-        image: images[0].base64Data, // Assuming single image for edit
-        // Some APIs might want 'images': [base64]
-      });
-      headers['Content-Type'] = 'application/json';
-    } else {
-      // Text to image
-      body = JSON.stringify({
-        model: 'gpt-image-1.5-all',
-        prompt: prompt,
-        n: 1,
-        size: "1024x1024"
-      });
-      headers['Content-Type'] = 'application/json';
+    // Map Aspect Ratio
+    let ratio = settings.aspectRatio;
+    if (!ratio || ratio === 'Auto') {
+      ratio = '1:1';
     }
 
-    // Special handling if we REALLY need to force apizoo.top:
-    // const explicitEndpoint = isImageEdit 
-    //   ? 'https://api.apizoo.top/v1/images/edits' 
-    //   : 'https://api.apizoo.top/v1/images/generations';
-    // But I'll stick to `endpoint` variable derived from `baseUrl`.
+    // Prepare images array if present
+    const imageList = images.map(img => {
+      // If the data is already a URL, use it. If base64, format as Data URI?
+      // The service stores base64Data (raw base64).
+      // We will try sending Data URI format: data:image/png;base64,...
+      return `data:${img.mimeType};base64,${img.base64Data}`;
+    });
+
+    const bodyPayload: any = {
+      model: 'gpt-image-1.5-all',
+      prompt: prompt,
+      n: 1,
+      ratio: ratio,
+    };
+
+    if (isImageEdit) {
+      bodyPayload.images = imageList;
+    } else {
+      // Even for text-to-image, the sample input had "images": [url] (maybe for remix?)
+      // or "images": [] for pure generation? 
+      // The second sample (pig) had "images": [] and prompt "生成一张小猪".
+      // So for text-to-image, we should explicitly send empty array or omit?
+      // Sample 2 input: "images": [], "prompt": "...", "ratio": "1:1".
+      // So we will send empty array if valid.
+      bodyPayload.images = [];
+    }
 
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: headers,
-      body: body
+      body: JSON.stringify(bodyPayload)
     });
 
     if (!response.ok) {
@@ -319,15 +300,20 @@ export const generateContent = async (
     }
 
     const data = await response.json();
-    const imageUrl = data.data?.[0]?.url;
+
+    // Parse response based on user sample
+    // Sample 1: "urls": ["https://..."]
+    // Sample 2: "urls": ["https://..."]
+    // Also check "generations" just in case?
+    const imageUrl = data.urls?.[0] || data.generations?.[0]?.url || data.data?.[0]?.url;
 
     if (!imageUrl) {
-      throw new Error("No image URL returned from API");
+      console.error("GPT Image Response Data:", data);
+      throw new Error("No image URL returned from API (checked urls, generations, data)");
     }
 
     const currentUserContent = constructUserContent(prompt, images);
 
-    // Return result as a model part containing the image URL
     return {
       userContent: currentUserContent,
       modelParts: [{
