@@ -166,8 +166,8 @@ export const SettingsPanel: React.FC = () => {
                   }}
                   disabled={isDisabled}
                   className={`rounded-lg border px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium transition ${settings.resolution === res
-                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                      : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700'
+                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700'
                     } ${isDisabled ? 'opacity-40 cursor-not-allowed hover:border-gray-200 dark:hover:border-gray-800' : ''}`}
                 >
                   {res}
@@ -190,7 +190,7 @@ export const SettingsPanel: React.FC = () => {
               { name: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro' },
               { name: 'gemini-2.5-flash-image-preview', label: 'Gemini 2.5 Flash (Preview)' },
               { name: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash' },
-              { name: 'gpt-image-1.5', label: 'GPT Image 1.5' }
+              { name: 'gpt-image-1.5-all', label: 'GPT Image 1.5 All' }
             ] as const).map((model) => {
               const isActive = (settings.modelName || 'gemini-3-pro-image-preview') === model.name;
               return (
@@ -198,8 +198,8 @@ export const SettingsPanel: React.FC = () => {
                   key={model.name}
                   onClick={() => updateSettings({ modelName: model.name })}
                   className={`w-full rounded-lg border px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-medium text-left transition ${isActive
-                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                      : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700'
+                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700'
                     }`}
                 >
                   {model.label}
@@ -230,8 +230,8 @@ export const SettingsPanel: React.FC = () => {
                   key={ratio}
                   onClick={() => updateSettings({ aspectRatio: ratio })}
                   className={`flex flex-col items-center justify-center gap-1 sm:gap-2 rounded-lg border p-2 sm:p-3 transition ${isActive
-                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                      : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900'
+                    ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900'
                     }`}
                 >
                   <div
